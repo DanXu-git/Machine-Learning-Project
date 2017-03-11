@@ -1,0 +1,71 @@
+---
+title: "Quantify Sport Activity"
+author: "Danxu"
+date: "2017/3/11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+#Execution Summary
+Because sports exercises are often composed of well-defined movements, and consider to the computational cost, I decide to train the model with **Model Based method**.  
+
+#Initialization 
+```{r initialization, echo=TRUE}
+library(caret)
+library(ggplot2)
+df1 <- read.csv("pml-training.csv", header=T)
+validation <- read.csv("pml-testing.csv", header=T) #validation set
+
+##create a new df of useful predictors.
+set.seed(32323)
+target_names <- grep(names(df1), pattern = "_[xyz]$")
+df2 <- subset(df1, select=c(classe, target_names))
+
+#$create training and testing data sets
+inTrain <- createDataPartition(df2$classe, p=.75, list=FALSE)
+training <- df2[inTrain, ]
+testing <- df2[-inTrain, ]
+```
+# Exploratory
+```{r explo}
+p1 <- qplot( user_name, accel_belt_x, data=df1, fill=user_name, geom=c("boxplot"))
+p2 <- qplot( user_name, accel_belt_x, data=df1, geom=c("boxplot","jitter"))
+library(gridExtra)
+grid.arrange(p1,p2,ncol=2)
+```  
+
+  Pick the accel_belt_x data and look into it, we see the participant "adelmo" perform quite different from others, and almost all beyond 0, he may be the guy performed much more wrong situations.   
+  And one move contains a series movement, so we ought to consider a window of xyz data to fit the model and do prediction.
+  
+  
+#Train with Model Based method
+```{r lda, echo=TRUE}
+modFit_lda <- train(classe ~ . , method='lda', data=training)
+#load("modFit_lda_quantify_sport.rda") #to save time for myself
+pred <- predict(modFit_lda, testing)
+conMatr <- confusionMatrix(testing$classe, pred)
+acclda <- conMatr$overall[[1]] #Get the testing set accuracy
+```
+So, the prediction accuracy on testing set is `r acclda`. And the out of sample error is 1 -  `r acclda`.  
+
+##Here's prediction table
+```{r tilePlot}
+tb1 <- conMatr$table; tb1 <- tb1/rowSums(tb1)
+Df <- as.data.frame(tb1)
+g <- ggplot( Df, aes(x=Reference, y=Prediction, fill=Freq))
+g = g + geom_tile() + scale_fill_gradient(low="white", high="steelblue")
+g + geom_text(aes(label=round(Freq,2)))
+```
+  
+# Use model to predict the 20 different test cases.
+  Prediction Results:
+```{r pred_test20}
+predict(modFit_lda, validation)
+```  
+  As we can see, we get a relatively good precisy, and it's very efficient.
+  
+#  Conclusion
+We trained the model with linear discrimination method, and it performs quite well in prediction the quantity of this sport activity.
