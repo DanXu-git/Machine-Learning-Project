@@ -43,29 +43,32 @@ grid.arrange(p1,p2,ncol=2)
   
 #Train with Model Based method
 ```{r lda, echo=TRUE}
-modFit_lda <- train(classe ~ . , method='lda', data=training)
-#load("modFit_lda_quantify_sport.rda") #to save time for myself
+#modFit_lda <- train(classe ~ . , method='lda', data=training)
+load("modFit_lda_quantify_sport.rda") #to save time for myself
 pred <- predict(modFit_lda, testing)
 conMatr <- confusionMatrix(testing$classe, pred)
 acclda <- conMatr$overall[[1]] #Get the testing set accuracy
 ```
 So, the prediction accuracy on testing set is `r acclda`. And the out of sample error is 1 -  `r acclda`.  
 
-##Here's prediction table
+##Here's prediction accuracy table
 ```{r tilePlot}
 tb1 <- conMatr$table; tb1 <- tb1/rowSums(tb1)
 Df <- as.data.frame(tb1)
 g <- ggplot( Df, aes(x=Reference, y=Prediction, fill=Freq))
 g = g + geom_tile() + scale_fill_gradient(low="white", high="steelblue")
 g + geom_text(aes(label=round(Freq,2)))
-```
+```  
+
+  As we can see, we get a relatively good precisy, and it's very efficient.
+
   
 # Use model to predict the 20 different test cases.
   Prediction Results:
 ```{r pred_test20}
 predict(modFit_lda, validation)
 ```  
-  As we can see, we get a relatively good precisy, and it's very efficient.
-  
+
+    
 #  Conclusion
 We trained the model with linear discrimination method, and it performs quite well in prediction the quantity of this sport activity.
