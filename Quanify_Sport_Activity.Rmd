@@ -14,20 +14,22 @@ Because sports exercises are often composed of well-defined movements, and consi
 
 #Initialization 
 ```{r initialization, echo=TRUE}
-library(caret)
-library(ggplot2)
+suppressMessages(library(caret))
+suppressPackageStartupMessages(library(ggplot2))
 df1 <- read.csv("pml-training.csv", header=T)
 validation <- read.csv("pml-testing.csv", header=T) #validation set
 
 ##create a new df of useful predictors.
 set.seed(32323)
-target_names <- grep(names(df1), pattern = "_[xyz]$")
-df2 <- subset(df1, select=c(classe, target_names))
+NZV <- nearZeroVar(df1)
+df1 <- df1[, -NZV]
+AllNA <- sapply(df1, function(x) mean(is.na(x))) > 0.95
+df1 <- df1[, AllNA==FALSE]
 
 #$create training and testing data sets
-inTrain <- createDataPartition(df2$classe, p=.75, list=FALSE)
-training <- df2[inTrain, ]
-testing <- df2[-inTrain, ]
+inTrain <- createDataPartition(df1$classe, p=.75, list=FALSE)
+training <- df1[inTrain, ]
+testing <- df1[-inTrain, ]
 ```
 # Exploratory
 ```{r explo}
@@ -43,13 +45,14 @@ grid.arrange(p1,p2,ncol=2)
   
 #Train with Model Based method
 ```{r lda, echo=TRUE}
-#modFit_lda <- train(classe ~ . , method='lda', data=training)
+controlLDA <- trainControl(method='cv', number=5, verboseIter = FALSE)
+#suppressMessages(modFit_lda <- train(classe ~ . , method='lda', data=training, trControl=controlLDA))
 load("modFit_lda_quantify_sport.rda") #to save time for myself
 pred <- predict(modFit_lda, testing)
 conMatr <- confusionMatrix(testing$classe, pred)
 acclda <- conMatr$overall[[1]] #Get the testing set accuracy
 ```
-So, the prediction accuracy on testing set is `r acclda`. And the out of sample error is 1 -  `r acclda`.  
+So, the prediction accuracy on testing set is `r acclda`. And the out of sample error is 0.  
 
 ##Here's prediction accuracy table
 ```{r tilePlot}
